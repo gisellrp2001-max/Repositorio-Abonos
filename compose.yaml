@@ -1,0 +1,13 @@
+services:
+  gestion-abonos:
+    build: .
+    ports:
+      - "8501:8501"
+    env_file: .env
+    environment:
+      APP_DATA_DIR: /data
+    volumes:
+      - abonos_data:/data
+    restart: unless-stopped
+volumes:
+  abonos_data:
