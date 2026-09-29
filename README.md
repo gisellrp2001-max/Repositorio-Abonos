@@ -41,17 +41,13 @@ Se permiten hasta **20 archivos**, de **10 MB cada uno**, con un máximo total d
 
 Los importes PEN y USD se reportan por separado, sin convertir monedas. La lista operativa muestra hasta 1 000 registros por consulta y presenta 25 por página. Para un volumen mucho mayor o varios servidores, conviene migrar SQLite a una base de datos corporativa y usar almacenamiento de objetos para los adjuntos.
 
-## Publicar el código en GitHub
+## Repositorio
 
-Descomprime el ZIP y sube **el contenido de esta carpeta** como raíz del repositorio. Puedes crear un repositorio vacío en GitHub y ejecutar:
+El código está en `https://github.com/gisellrp2001-max/Repositorio-Abonos`. Para obtenerlo:
 
 ```bash
-git init
-git add .
-git commit -m "Aplicación Gestión de Abonos"
-git branch -M main
-git remote add origin URL_DE_TU_REPOSITORIO
-git push -u origin main
+git clone https://github.com/gisellrp2001-max/Repositorio-Abonos.git
+cd Repositorio-Abonos
 ```
 
 El repositorio no incluye datos, vouchers ni contraseñas. `.gitignore` excluye `.env` y `data/`.
