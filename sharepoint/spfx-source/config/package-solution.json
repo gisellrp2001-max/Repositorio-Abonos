@@ -1,0 +1,46 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "gestion-abonos",
+    "id": "b2aac1b7-e693-439f-bc8a-38c3a92fbd46",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "Gestión de Abonos",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": "Undefined-1.23.2"
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Registro, lectura automática y validación de abonos."
+      },
+      "longDescription": {
+        "default": "App para registrar abonos a partir de vouchers (lectura automática con Azure), validarlos y hacer seguimiento con historial, guardando todo en listas de SharePoint."
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "Gestión de Abonos",
+        "description": "Web part Gestión de Abonos.",
+        "id": "e8620fa6-ea41-4f6a-b81a-fb50855a09ce",
+        "version": "1.0.0.0"
+      }
+    ],
+    "webApiPermissionRequests": [
+      {
+        "resource": "GestionAbonos-OCR",
+        "scope": "user_impersonation"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/gestion-abonos.sppkg"
+  }
+}
