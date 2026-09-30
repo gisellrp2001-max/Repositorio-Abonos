@@ -1,6 +1,6 @@
 # Gestión de Abonos para SharePoint: guía de instalación
 
-La app es un web part de SharePoint (SPFx) que guarda todo en tus listas y biblioteca de SharePoint. Una Azure Function lee cada voucher con Azure OpenAI y devuelve los datos para que el vendedor los revise. Tus colegas entran con su cuenta corporativa desde una página de SharePoint, en el navegador o en el celular.
+La app es un web part de SharePoint (SPFx) que guarda todo en tus listas y biblioteca de SharePoint. Una Azure Function lee cada voucher con **Azure AI Document Intelligence** (recomendado) o con Azure OpenAI, y devuelve los datos para que el vendedor los revise. Tus colegas entran con su cuenta corporativa desde una página de SharePoint, en el navegador o en el celular.
 
 ## Qué incluye este paquete
 
@@ -34,23 +34,55 @@ npm ci
 npm run demo      # crea demo/dist/gestion-abonos-demo.html
 ```
 
-**Opcional: probar la lectura real sin publicar nada.** Necesitas Azure OpenAI; la función corre en tu equipo.
+### Probar la lectura real con tus vouchers
+
+Solo necesitas un recurso de **Document Intelligence** (Paso 1, puede ser el nivel gratuito F0) y Node 20 o superior. Nada se publica.
+
+**A. Solo la lectura, desde la consola.** Muestra qué datos saca de cada voucher:
+
+```bash
+cd azure-function
+npm install
+# Windows (PowerShell):  $env:DOCINTEL_ENDPOINT="https://<recurso>.cognitiveservices.azure.com"; $env:DOCINTEL_KEY="<clave>"
+export DOCINTEL_ENDPOINT=https://<recurso>.cognitiveservices.azure.com
+export DOCINTEL_KEY=<clave>
+node probar-voucher.js voucher1.jpg voucher2.pdf
+```
+
+Agrega `VER_TEXTO=1` para ver también todo el texto que leyó. Si un banco no se interpreta bien, ese texto sirve para ajustar las reglas en `src/docintel.js`.
+
+**B. La demo completa con lectura real.** Necesitas Azure Functions Core Tools (`func`).
 
 1. En `azure-function/`, copia `local.settings.example.json` como `local.settings.json`.
-2. Completa `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT` y `AZURE_OPENAI_KEY`, y cambia `"CORS"` a `"*"`.
+2. Completa `DOCINTEL_ENDPOINT` y `DOCINTEL_KEY`, y cambia `"CORS"` a `"*"`.
 3. Ejecuta `npm install` y luego `func start`.
 4. Abre la demo agregando `?ocr=http://localhost:7071/api/leer-voucher` al final de la dirección.
 
 ## Requisitos
 
 - Permiso de **administrador de SharePoint** (para el Catálogo de aplicaciones y para aprobar el acceso a la API) o ayuda de tu TI.
-- Una suscripción de **Azure** con acceso a **Azure OpenAI**, y un modelo con visión desplegado (por ejemplo `gpt-4o` o `gpt-4.1-mini`).
+- Una suscripción de **Azure** con un recurso de **Azure AI Document Intelligence** (o, como alternativa, **Azure OpenAI** con un modelo con visión, por ejemplo `gpt-4o`).
 - Para el script: PowerShell 7 y el módulo `PnP.PowerShell`.
 - Para publicar la función: Azure Functions Core Tools v4 (`func`) o la extensión Azure Functions de VS Code.
 
 ---
 
-## Paso 1. Azure OpenAI
+## Paso 1. El servicio de lectura
+
+La función puede usar cualquiera de los dos servicios; elige uno. Si configuras `DOCINTEL_ENDPOINT`, usa Document Intelligence; si no, Azure OpenAI.
+
+| | Document Intelligence (recomendado) | Azure OpenAI |
+|---|---|---|
+| Cómo lee | OCR de Microsoft (modelo *Layout* con pares clave-valor). Reglas para vouchers peruanos en `src/docintel.js` convierten el texto en los 9 datos. | Un modelo de IA con visión mira la imagen y devuelve los datos. |
+| Fuerte en | Texto nítido, costo bajo y predecible, disponible en casi todas las suscripciones y con nivel gratuito. | Fotos torcidas o de baja calidad, y formatos de bancos que las reglas no conocen. |
+| A tener en cuenta | Un formato nuevo de voucher puede requerir ajustar las reglas. | Algunas organizaciones deben solicitar acceso; costo algo mayor por voucher. |
+
+**Opción A: Document Intelligence**
+
+1. En el portal de Azure, crea un recurso **Document Intelligence** (en *Azure AI services*). Para probar, elige el plan **Free F0**; para producción, **Standard S0**.
+2. En **Claves y punto de conexión**, anota el **punto de conexión** (`https://<recurso>.cognitiveservices.azure.com`) y una **clave**. La clave solo la usarás para probar en tu equipo; la función publicada usa identidad administrada.
+
+**Opción B: Azure OpenAI**
 
 1. En el portal de Azure, crea un recurso **Azure OpenAI** o usa uno existente.
 2. En **Azure AI Foundry › Implementaciones**, despliega un modelo con visión. Anota el **nombre de la implementación** (por ejemplo `gpt-4o`) y el **endpoint** (`https://<recurso>.openai.azure.com`).
@@ -69,17 +101,20 @@ az storage account create -n $ST -g $RG -l $LOC --sku Standard_LRS
 az functionapp create -n $APP -g $RG --storage-account $ST \
   --flexconsumption-location $LOC --runtime node --runtime-version 20
 
-# Configuración
-az functionapp config appsettings set -n $APP -g $RG --settings \
-  AZURE_OPENAI_ENDPOINT=https://<recurso>.openai.azure.com \
-  AZURE_OPENAI_DEPLOYMENT=gpt-4o \
-  AZURE_OPENAI_API_VERSION=2024-10-21
-
-# Identidad administrada con permiso sobre Azure OpenAI (así no guardas claves)
+# Identidad administrada de la función (así no guardas claves)
 az functionapp identity assign -n $APP -g $RG
 PRINCIPAL=$(az functionapp identity show -n $APP -g $RG --query principalId -o tsv)
-OPENAI_ID=$(az cognitiveservices account show -n <recurso> -g <rg-del-recurso> --query id -o tsv)
-az role assignment create --assignee $PRINCIPAL --role "Cognitive Services OpenAI User" --scope $OPENAI_ID
+RECURSO_ID=$(az cognitiveservices account show -n <recurso> -g <rg-del-recurso> --query id -o tsv)
+
+# Opción A: Document Intelligence
+az functionapp config appsettings set -n $APP -g $RG --settings \
+  DOCINTEL_ENDPOINT=https://<recurso>.cognitiveservices.azure.com
+az role assignment create --assignee $PRINCIPAL --role "Cognitive Services User" --scope $RECURSO_ID
+
+# Opción B: Azure OpenAI (en lugar de la A)
+# az functionapp config appsettings set -n $APP -g $RG --settings \
+#   AZURE_OPENAI_ENDPOINT=https://<recurso>.openai.azure.com AZURE_OPENAI_DEPLOYMENT=gpt-4o AZURE_OPENAI_API_VERSION=2024-10-21
+# az role assignment create --assignee $PRINCIPAL --role "Cognitive Services OpenAI User" --scope $RECURSO_ID
 
 # Publicar el código
 cd azure-function
@@ -89,7 +124,9 @@ func azure functionapp publish $APP
 
 La URL que usarás después es `https://<APP>.azurewebsites.net/api/leer-voucher`.
 
-> Si prefieres usar una clave en lugar de identidad administrada, agrega el ajuste `AZURE_OPENAI_KEY`. Es mejor guardarla en Key Vault.
+> Si prefieres usar una clave en lugar de identidad administrada, agrega el ajuste `DOCINTEL_KEY` (o `AZURE_OPENAI_KEY`). Es mejor guardarla en Key Vault.
+>
+> Ajustes opcionales de Document Intelligence: `DOCINTEL_MODEL` (por defecto `prebuilt-layout`) y `DOCINTEL_FEATURES` (por defecto `keyValuePairs`; déjalo vacío para leer solo texto a menor costo).
 
 ## Paso 3. Proteger la función con Entra ID
 
@@ -203,11 +240,14 @@ Estructura principal:
 |---|---|
 | “La lectura falló (401)” | Falta aprobar la API en SharePoint (Paso 5.3), o el ID de aplicación del web part no coincide con `api://<client-id>`. |
 | “La lectura falló (403/404)” o error de CORS | Revisa la URL de la función y agrega tu dominio de SharePoint en CORS (Paso 3.7). |
-| “El servicio de lectura no respondió correctamente” | Revisa en la función los ajustes `AZURE_OPENAI_*` y el rol *Cognitive Services OpenAI User* de la identidad administrada. Los registros están en Application Insights. |
+| “El servicio de lectura no respondió correctamente” | Revisa en la función los ajustes `DOCINTEL_*` (o `AZURE_OPENAI_*`) y el rol de la identidad administrada: *Cognitive Services User* para Document Intelligence, *Cognitive Services OpenAI User* para Azure OpenAI. Los registros están en Application Insights. |
+| Un banco se lee mal o le faltan datos | Prueba ese voucher con `node probar-voucher.js` y `VER_TEXTO=1`, y ajusta las etiquetas en `src/docintel.js`. La revisión del vendedor siempre permite corregir antes de enviar. |
 | La app dice que no encuentra una columna | Corrige el mapeo en el panel del web part y revisa **Configuración**. |
 | “No se pudo registrar: … Estado” | La columna Estado es de elección y sus opciones no coinciden. Agrega las opciones o usa `valores.estado` en el mapeo. |
 | Un vendedor no puede subir el voucher | Le falta permiso en la biblioteca *Vouchers*. |
 
 ## Costos
 
-Cada lectura es una llamada a Azure OpenAI con una imagen, y cuesta centavos por voucher según el modelo y la región; revisa los precios de tu suscripción. La función en plan Flex Consumption solo cobra por uso.
+- **Document Intelligence:** se cobra por página analizada (cada voucher es una página). El plan Free F0 sirve para probar sin costo; en Standard S0 el precio del modelo *Layout* con pares clave-valor es de centavos por voucher. Consulta los precios de tu región en la [página de precios de Azure](https://azure.microsoft.com/pricing/details/ai-document-intelligence/).
+- **Azure OpenAI:** cada lectura es una llamada con una imagen y cuesta centavos por voucher según el modelo y la región.
+- **La función** en plan Flex Consumption solo cobra por uso.

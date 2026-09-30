@@ -1,15 +1,18 @@
 {
   "name": "gestion-abonos-ocr",
   "version": "1.0.0",
-  "description": "Lee vouchers bancarios con Azure OpenAI (visión) y devuelve los datos para Gestión de Abonos.",
+  "description": "Lee vouchers bancarios con Azure AI Document Intelligence o Azure OpenAI (visión) y devuelve los datos para Gestión de Abonos.",
   "main": "src/functions/*.js",
   "scripts": {
     "start": "func start",
-    "test": "node test/prueba-normalizar.js"
+    "test": "node test/prueba-normalizar.js && node test/prueba-docintel.js && node test/prueba-analizar.js",
+    "probar": "node probar-voucher.js"
   },
   "dependencies": {
     "@azure/functions": "^4.16.5",
     "@azure/identity": "^4.13.3"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  }
 }
