@@ -52,7 +52,7 @@ html,body{margin:0;background:#E6ECEE;font-family:'Segoe UI',system-ui,sans-seri
 .demo-bar label{display:flex;align-items:center;gap:8px;margin-left:auto;color:#fff}
 .demo-bar select,.demo-bar button{height:32px;border-radius:7px;border:1px solid #2A3539;background:#16262c;color:#fff;padding:0 10px;font:inherit;cursor:pointer}
 .demo-bar button:hover{background:#1f343b}
-.demo-frame{max-width:1440px;margin:16px auto;padding:0 12px}
+.demo-frame{margin:0;padding:0}.demo-frame>.root,.demo-frame .root{border-radius:0;min-height:calc(100vh - 52px)}
 ${css}
 </style>
 </head>
