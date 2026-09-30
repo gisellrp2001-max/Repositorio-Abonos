@@ -1,0 +1,23 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "whichFolder": "subdir",
+    "solutionName": "gestion-abonos",
+    "environment": "spo",
+    "packageManager": "npm",
+    "skipFeatureDeployment": true,
+    "useGulp": false,
+    "componentType": "webpart",
+    "template": "react",
+    "componentName": "GestionAbonos",
+    "componentDescription": "Registro de abonos",
+    "plusBeta": false,
+    "isCreatingSolution": true,
+    "nodeVersion": "22.22.2",
+    "sdksVersions": {},
+    "version": "1.23.2",
+    "libraryName": "gestion-abonos",
+    "libraryId": "b2aac1b7-e693-439f-bc8a-38c3a92fbd46",
+    "solutionShortDescription": "gestion-abonos description",
+    "isDomainIsolated": false
+  }
+}

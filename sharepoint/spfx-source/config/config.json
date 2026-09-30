@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "gestion-abonos-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/gestionAbonos/GestionAbonosWebPart.js",
+          "manifest": "./src/webparts/gestionAbonos/GestionAbonosWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "GestionAbonosWebPartStrings": "lib/webparts/gestionAbonos/loc/{locale}.js"
+  }
+}

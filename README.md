@@ -1,5 +1,18 @@
 # Gestión de Abonos
 
+Este repositorio contiene dos versiones de la app:
+
+| Carpeta | Versión | Para qué sirve |
+|---|---|---|
+| [`sharepoint/`](sharepoint/LEEME.md) | **SharePoint (principal)** | Web part de SharePoint que guarda todo en listas de la empresa y lee los vouchers con Azure OpenAI. Los usuarios entran con su cuenta corporativa. La guía de instalación está en [`sharepoint/LEEME.md`](sharepoint/LEEME.md). |
+| raíz (`app.py`, etc.) | Streamlit (alternativa) | App web en Python con SQLite y Tesseract. Se describe abajo. |
+
+**Demo en línea:** [`docs/index.html`](docs/index.html) es la demo de la versión SharePoint, con datos de ejemplo y lectura simulada. Se publica gratis con GitHub Pages (*Settings › Pages › Deploy from a branch › `main` / `/docs`*).
+
+---
+
+## Versión Streamlit
+
 Aplicación web de Streamlit para vendedores y el equipo de Gestión. Registra abonos a partir de uno o varios vouchers, lee su contenido con Tesseract OCR, permite corregir cada dato, advierte duplicados y conserva archivos e historial de validaciones.
 
 ## Estructura
