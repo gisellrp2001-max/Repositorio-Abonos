@@ -93,10 +93,10 @@ export function VGInicio(): React.ReactElement {
               <tbody>
                 {pend.slice(0, 12).map(a => (
                   <tr key={a.id} onClick={() => go('detalle', a.code)}>
-                    <td className="code">{a.code}</td><td className="mono" style={{ fontSize: 12 }}>{fmtTs(a.created)}</td><td>{a.authorName}</td><td className="strong">{a.clienteRazon}</td>
-                    <td>{a.banco}</td><td className="op">{a.operacion}</td><td className="amt">{money(a.importe, a.moneda)}</td><td><Badge e={a.estado} /></td>
-                    <td><span className={'age ' + ageCls(since(a))}>{ago(since(a))}</span></td>
-                    <td><button type="button" className="btn btn-p btn-sm" onClick={e => { e.stopPropagation(); go('detalle', a.code); }}>Revisar</button></td>
+                    <td className="code h">{a.code}</td><td className="mono m-hide" style={{ fontSize: 12 }}>{fmtTs(a.created)}</td><td data-l="Vendedor">{a.authorName}</td><td className="strong cli">{a.clienteRazon}</td>
+                    <td data-l="Banco">{a.banco}</td><td className="op" data-l="Operación">{a.operacion}</td><td className="amt" data-l="Importe">{money(a.importe, a.moneda)}</td><td className="st"><Badge e={a.estado} /></td>
+                    <td data-l="Pendiente hace"><span className={'age ' + ageCls(since(a))}>{ago(since(a))}</span></td>
+                    <td className="act"><button type="button" className="btn btn-p btn-sm" onClick={e => { e.stopPropagation(); go('detalle', a.code); }}>Revisar</button></td>
                   </tr>
                 ))}
               </tbody>

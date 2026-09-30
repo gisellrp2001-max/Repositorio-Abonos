@@ -12,8 +12,8 @@ export function VConfig(props: { mappingError: string }): React.ReactElement {
   const cfg = sp.cfg;
   const row = (label: string, col: string, found: boolean, type: string): React.ReactElement => (
     <tr key={label + col}>
-      <td>{label}</td><td className="op">{col || '—'}</td><td className="muted">{type || '—'}</td>
-      <td>{found ? <span className="b b-val"><i />Encontrada</span> : col ? <span className="b b-obs"><i />No existe</span> : <span className="b b-neu"><i />Sin asignar</span>}</td>
+      <td className="strong h">{label}</td><td className="op" data-l="Columna">{col || '—'}</td><td className="muted" data-l="Tipo">{type || '—'}</td>
+      <td className="st">{found ? <span className="b b-val"><i />Encontrada</span> : col ? <span className="b b-obs"><i />No existe</span> : <span className="b b-neu"><i />Sin asignar</span>}</td>
     </tr>
   );
   return (

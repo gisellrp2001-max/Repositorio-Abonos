@@ -304,6 +304,31 @@
   .root :global(.ga) { flex-direction: column; min-height: 0; }
   .root :global(.alert) { flex-wrap: wrap; }
   .root :global(.alert > div) { flex: 1 1 200px; }
+  // Tablas como tarjetas: código (.h) y estado (.st) arriba, cliente (.cli) debajo y el resto con su etiqueta (data-l).
+  .root :global(table.t), .root :global(table.t tbody) { display: block; }
+  .root :global(table.t thead) { display: none; }
+  .root :global(table.t tbody tr) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 7px; padding: 14px 16px; border-bottom: 1px solid var(--line-2); }
+  .root :global(table.t tbody tr:last-child) { border-bottom: 0; }
+  .root :global(table.t tbody tr:hover td) { background: none; }
+  .root :global(table.t td) { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0; border: 0; white-space: normal; text-align: right; min-width: 0; }
+  .root :global(table.t td[data-l]::before) { content: attr(data-l); font-family: var(--f-ui); font-size: 12.5px; font-weight: 500; color: var(--muted); text-align: left; flex: none; }
+  .root :global(table.t td.h) { grid-column: 1; grid-row: 1; order: -2; text-align: left; justify-content: flex-start; }
+  .root :global(table.t td.st) { grid-column: 2; grid-row: 1; order: -2; justify-content: flex-end; }
+  .root :global(table.t td.cli) { order: -1; font-size: 15px; text-align: left; justify-content: flex-start; }
+  .root :global(table.t td.m-hide) { display: none; }
+  .root :global(table.t td.act) { margin-top: 4px; }
+  .root :global(table.t td.act .btn) { width: 100%; justify-content: center; min-height: 44px; }
+  .root :global(table.t td:empty) { display: none; }
+  // Filtros de la bandeja en dos columnas; búsqueda, fechas y "Limpiar" a lo ancho.
+  .root :global(.fbar) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .root :global(.fbar > .srch), .root :global(.fbar > label), .root :global(.fbar > .btn) { grid-column: 1 / -1; }
+  .root :global(.fbar .fsel) { width: 100%; height: 42px; }
+  .root :global(.fbar > label > span) { width: 44px; flex: none; }
+  .root :global(.fbar > label > .fsel) { flex: 1; min-width: 0; }
+  // Botones de acción apilados y a lo ancho; la acción principal queda arriba.
+  .root :global(.actbar) { flex-direction: column-reverse; align-items: stretch; }
+  .root :global(.actbar > .row) { flex-direction: column-reverse; align-items: stretch; }
+  .root :global(.actbar .btn) { width: 100%; justify-content: center; min-height: 44px; }
 }
 @container (max-width: 520px) {
   .root :global(.kpi) { padding: 14px; }

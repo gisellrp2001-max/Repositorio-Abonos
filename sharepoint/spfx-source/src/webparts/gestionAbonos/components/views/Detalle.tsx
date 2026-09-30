@@ -136,7 +136,7 @@ export function VDetalle(): React.ReactElement {
         <div><dt>Fecha de registro</dt><dd className="mono" style={{ fontWeight: 500 }}>{fmtTs(a.created, true)}</dd></div>
       </dl>
       {edit ? (
-        <div className="between" style={{ borderTop: '1px solid var(--line-2)', paddingTop: 14 }}>
+        <div className="between actbar" style={{ borderTop: '1px solid var(--line-2)', paddingTop: 14 }}>
           <span className="row muted" style={{ fontSize: 12.5 }}><Icon n="lock" />Tu corrección se agrega al historial; lo anterior no se elimina.</span>
           <div className="row">
             <button type="button" className="btn btn-s" onClick={() => setEdit(null)} disabled={saving}>Cancelar</button>
