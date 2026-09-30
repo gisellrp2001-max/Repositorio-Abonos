@@ -417,6 +417,14 @@ def users_view(user):
                 try:db.reset_password(user,selected['id'],new);st.success('Contraseña restablecida. Comunícala por un canal seguro.')
                 except (ValueError,PermissionError) as exc:st.error(str(exc))
 
+def load_secrets():
+    """Streamlit Community Cloud entrega la configuración en st.secrets; se copia al entorno para db.py."""
+    try:
+        for key in ('ADMIN_EMAIL','ADMIN_PASSWORD','APP_DATA_DIR'):
+            if not os.getenv(key) and key in st.secrets:os.environ[key]=str(st.secrets[key])
+    except Exception:pass
+
+load_secrets()
 try:db.initialize()
 except ValueError as e:st.error(f'Configuración inicial: {e}');st.stop()
 user=current_user()
