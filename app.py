@@ -14,7 +14,7 @@ import ocr
 st.set_page_config(page_title='Gestión de Abonos',page_icon='💳',layout='wide',initial_sidebar_state='expanded')
 st.markdown('''<style>
 [data-testid="stAppViewContainer"]{background:#f3f6f8} [data-testid="stSidebar"]{background:#123951;color:white}
-[data-testid="stSidebar"] *{color:#eaf4f6!important} [data-testid="stSidebar"] button{color:#213d50!important}
+[data-testid="stSidebar"] *{color:#eaf4f6!important} [data-testid="stSidebar"] button,[data-testid="stSidebar"] button *,[data-testid="stSidebar"] input,[data-testid="stSidebar"] summary,[data-testid="stSidebar"] summary *{color:#213d50!important}
 .block-container{padding-top:1.8rem;max-width:1450px}.hero{background:white;padding:22px 26px;border:1px solid #e1e9ed;border-radius:14px;margin-bottom:20px}.hero h1{font-size:1.75rem;margin:0;color:#203249}.hero p{color:#6c7e8b;margin:.4rem 0 0}.small{color:#728594;font-size:.9rem}
 div[data-testid="stMetric"]{background:white;border:1px solid #e3ebef;border-radius:13px;padding:18px}div[data-testid="stVerticalBlockBorderWrapper"]>div{border-color:#e3ebef!important}
 </style>''',unsafe_allow_html=True)
