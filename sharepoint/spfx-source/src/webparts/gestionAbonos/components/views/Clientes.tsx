@@ -65,10 +65,10 @@ export function VClientes(): React.ReactElement {
               <tbody>
                 {list.map(c => { const s = stats(c); return (
                   <tr key={c.id} onClick={() => go('cliente', String(c.id))}>
-                    <td className="strong"><span className="row" style={{ flexWrap: 'nowrap' }}><span className="cli-ini" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 8 }}>{initials(c.razon)}</span>{c.razon}</span></td>
-                    <td className="op">{c.ruc}</td><td>{c.vendedorName || '—'}</td>
-                    <td><span className={'b ' + (c.estado === 'Inactivo' ? 'b-obs' : 'b-val')}><i />{c.estado || 'Activo'}</span></td>
-                    <td className="amt">{s.n}</td><td className="amt">{s.pend}</td><td className="muted">{s.last ? fmtTs(s.last, true) : '—'}</td>
+                    <td className="strong h"><span className="row" style={{ flexWrap: 'nowrap' }}><span className="cli-ini" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 8 }}>{initials(c.razon)}</span>{c.razon}</span></td>
+                    <td className="op" data-l="RUC">{c.ruc}</td><td data-l="Vendedor">{c.vendedorName || '—'}</td>
+                    <td className="st"><span className={'b ' + (c.estado === 'Inactivo' ? 'b-obs' : 'b-val')}><i />{c.estado || 'Activo'}</span></td>
+                    <td className="amt" data-l="Abonos">{s.n}</td><td className="amt" data-l="Pendientes">{s.pend}</td><td className="muted" data-l="Último abono">{s.last ? fmtTs(s.last, true) : '—'}</td>
                   </tr>
                 ); })}
               </tbody>
@@ -99,7 +99,7 @@ export function VCliente(): React.ReactElement {
       <div className="tw"><table className="t">
         <thead><tr><th>Fecha</th><th>Código</th><th>Banco</th><th>Operación</th><th className="num">Importe</th><th>Estado</th><th>Registrado por</th></tr></thead>
         <tbody>{L.map(a => (
-          <tr key={a.id} onClick={() => go('detalle', a.code)}><td>{fmtDate(a.fecha)}</td><td className="code">{a.code}</td><td>{a.banco}</td><td className="op">{a.operacion}</td><td className="amt">{money(a.importe, a.moneda)}</td><td><Badge e={a.estado} /></td><td>{a.authorName}</td></tr>
+          <tr key={a.id} onClick={() => go('detalle', a.code)}><td data-l="Fecha">{fmtDate(a.fecha)}</td><td className="code h">{a.code}</td><td data-l="Banco">{a.banco}</td><td className="op" data-l="Operación">{a.operacion}</td><td className="amt" data-l="Importe">{money(a.importe, a.moneda)}</td><td className="st"><Badge e={a.estado} /></td><td data-l="Registrado por">{a.authorName}</td></tr>
         ))}</tbody>
       </table></div>
     ) : <Empty icon="file" title="Sin abonos" text="Este cliente aún no tiene abonos registrados."><button type="button" className="btn btn-p" onClick={() => go('nuevo')}><Icon n="add" />Registrar abono</button></Empty>;

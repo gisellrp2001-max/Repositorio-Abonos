@@ -108,7 +108,7 @@ function Carga(): React.ReactElement {
           </div>
         ) : null}
         <div className="row muted" style={{ fontSize: 13.5 }}><Icon n="info" />Procura que cada voucher sea legible y que los datos principales sean visibles.</div>
-        <div className="between" style={{ paddingTop: 16, borderTop: '1px solid var(--line-2)' }}>
+        <div className="between actbar" style={{ paddingTop: 16, borderTop: '1px solid var(--line-2)' }}>
           {flow.items.some(i => i.status !== 'pendiente' && i.status !== 'preparando' && i.status !== 'error')
             ? <button type="button" className="btn btn-g" onClick={() => setFlow(f => ({ ...f, stage: 'lote' }))}><Icon n="back" />Volver al lote</button>
             : <button type="button" className="btn btn-g" onClick={() => go('inicio')}>Cancelar</button>}
@@ -329,7 +329,7 @@ function Revisar(props: { it: Item; upd: (p: (i: Item) => Partial<Item>) => void
         </section>
         <ClientePicker it={it} upd={upd} />
         <div className="card" style={{ padding: '14px 18px' }}>
-          <div className="between">
+          <div className="between actbar">
             <button type="button" className="btn btn-g" onClick={props.discard}><Icon n="x" />Descartar este voucher</button>
             <div className="row">
               {it.missing.length ? <span className="help bad" style={{ fontWeight: 600 }}>Completa: {it.missing.map(k => (k === 'cliente' ? 'Cliente' : FIELDS.filter(f => f[0] === k)[0][1])).join(', ')}</span> : null}
@@ -501,7 +501,7 @@ function Confirmar(props: { it: Item; upd: (p: (i: Item) => Partial<Item>) => vo
           </dl>
           <div style={{ borderTop: '1px solid var(--line-2)', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <label className="chk"><input type="checkbox" checked={it.revOk} onChange={e => { const v = e.target.checked; upd(() => ({ revOk: v })); }} />He revisado la información extraída del voucher.</label>
-            <div className="between">
+            <div className="between actbar">
               <button type="button" className="btn btn-s btn-lg" onClick={() => upd(() => ({ status: 'revisar' }))} disabled={saving}><Icon n="edit" />Volver a editar</button>
               <button type="button" className="btn btn-p btn-lg" onClick={() => { void save(); }} disabled={!ready}>{saving ? <><span className="spin" />Enviando…</> : <><Icon n="send" />Confirmar y enviar</>}</button>
             </div>

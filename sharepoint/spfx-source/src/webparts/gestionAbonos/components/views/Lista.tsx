@@ -69,7 +69,7 @@ export function AbonosTable(props: { title: string; list: Abono[]; full: boolean
         {!full ? <><StatusTabs list={list} f={f} set={setF} />{search}</> : null}
       </div>
       {full ? (
-        <div className="bar">
+        <div className="bar fbar">
           {search}
           <select className="fsel" value={f.cliente} onChange={e => setF({ cliente: e.target.value })} aria-label="Cliente">
             <option value="">Cliente: todos</option>{clientes.map(c => <option key={c.id} value={c.ruc}>{c.razon}</option>)}
@@ -103,17 +103,17 @@ export function AbonosTable(props: { title: string; list: Abono[]; full: boolean
             <tbody>
               {shown.map(a => full ? (
                 <tr key={a.id} onClick={() => open(a)}>
-                  <td className="code">{a.code}</td><td className="mono" style={{ fontSize: 12 }}>{fmtTs(a.created)}</td>{props.showVendor ? <td>{a.authorName}</td> : null}
-                  <td className="strong">{a.clienteRazon}</td><td className="op">{a.clienteRuc}</td><td>{a.banco}</td><td className="mono" style={{ fontSize: 12 }}>{fmtDate(a.fecha)}</td>
-                  <td className="op">{a.operacion}</td><td className="amt">{money(a.importe, a.moneda)}</td><td><Badge e={a.estado} /></td>
-                  {props.showVendor ? <td className={a.responsableName ? '' : 'muted'}>{a.responsableName || 'Sin asignar'}</td> : null}
-                  <td className="muted" style={{ fontSize: 12 }}>{fmtTs(a.modified)}</td>
+                  <td className="code h">{a.code}</td><td className="mono m-hide" style={{ fontSize: 12 }}>{fmtTs(a.created)}</td>{props.showVendor ? <td data-l="Vendedor">{a.authorName}</td> : null}
+                  <td className="strong cli">{a.clienteRazon}</td><td className="op m-hide">{a.clienteRuc}</td><td data-l="Banco">{a.banco}</td><td className="mono" data-l="Fecha op." style={{ fontSize: 12 }}>{fmtDate(a.fecha)}</td>
+                  <td className="op" data-l="N° operación">{a.operacion}</td><td className="amt" data-l="Importe">{money(a.importe, a.moneda)}</td><td className="st"><Badge e={a.estado} /></td>
+                  {props.showVendor ? <td className={'m-hide' + (a.responsableName ? '' : ' muted')}>{a.responsableName || 'Sin asignar'}</td> : null}
+                  <td className="muted" data-l="Actualizado" style={{ fontSize: 12 }}>{fmtTs(a.modified)}</td>
                 </tr>
               ) : (
                 <tr key={a.id} onClick={() => open(a)}>
-                  <td className="code">{a.code}</td><td className="strong">{a.clienteRazon}</td><td className="op">{a.clienteRuc}</td><td>{fmtDate(a.fecha)}</td><td>{a.banco}</td>
-                  <td className="op">{a.operacion}</td><td className="amt">{money(a.importe, a.moneda)}</td><td><Badge e={a.estado} /></td><td className="muted">{fmtTs(a.created)}</td>
-                  <td><button type="button" className={'btn btn-sm ' + (a.estado === 'Observado' ? 'btn-bad' : 'btn-s')} onClick={e => { e.stopPropagation(); open(a); }}>{a.estado === 'Observado' ? 'Corregir' : 'Ver detalle'}</button></td>
+                  <td className="code h">{a.code}</td><td className="strong cli">{a.clienteRazon}</td><td className="op m-hide">{a.clienteRuc}</td><td data-l="Fecha">{fmtDate(a.fecha)}</td><td data-l="Banco">{a.banco}</td>
+                  <td className="op" data-l="N° operación">{a.operacion}</td><td className="amt" data-l="Importe">{money(a.importe, a.moneda)}</td><td className="st"><Badge e={a.estado} /></td><td className="muted m-hide">{fmtTs(a.created)}</td>
+                  <td className="act"><button type="button" className={'btn btn-sm ' + (a.estado === 'Observado' ? 'btn-bad' : 'btn-s')} onClick={e => { e.stopPropagation(); open(a); }}>{a.estado === 'Observado' ? 'Corregir' : 'Ver detalle'}</button></td>
                 </tr>
               ))}
             </tbody>
