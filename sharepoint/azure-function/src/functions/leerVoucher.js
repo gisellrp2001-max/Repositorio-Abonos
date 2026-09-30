@@ -2,6 +2,9 @@
  * leer-voucher: recibe la imagen de un voucher y devuelve banco, fecha, hora, operación, importe, moneda,
  * cuenta destino, ordenante y referencia, cada uno con su nivel de confianza.
  *
+ * Servicio de lectura: si defines DOCINTEL_ENDPOINT se usa Azure AI Document Intelligence (src/docintel.js);
+ * si no, Azure OpenAI con un modelo con visión (AZURE_OPENAI_*).
+ *
  * Seguridad: protege la Function App con la autenticación de App Service (Entra ID). El web part llama
  * con AadHttpClient, así que solo usuarios de tu organización con el permiso aprobado llegan aquí.
  * La clave de Azure OpenAI nunca sale de Azure; si no defines AZURE_OPENAI_KEY se usa la identidad
@@ -9,6 +12,7 @@
  */
 const { app } = require('@azure/functions');
 const { DefaultAzureCredential } = require('@azure/identity');
+const docintel = require('../docintel');
 
 const ENDPOINT = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/+$/, '');
 const DEPLOYMENT = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
@@ -76,13 +80,24 @@ app.http('leer-voucher', {
   methods: ['POST'],
   authLevel: 'anonymous', // la autenticación la aplica App Service (Entra ID) antes de llegar aquí
   handler: async (request, context) => {
-    if (!ENDPOINT) return { status: 500, jsonBody: { error: 'Falta configurar AZURE_OPENAI_ENDPOINT en la función.' } };
+    const usarDocIntel = !!process.env.DOCINTEL_ENDPOINT;
+    if (!usarDocIntel && !ENDPOINT) return { status: 500, jsonBody: { error: 'Falta configurar DOCINTEL_ENDPOINT o AZURE_OPENAI_ENDPOINT en la función.' } };
     let body;
     try { body = await request.json(); } catch { return { status: 400, jsonBody: { error: 'Solicitud inválida.' } }; }
     const image = body && typeof body.image === 'string' ? body.image : '';
     const mime = body && /^image\/(jpeg|png|webp)$/.test(body.mimeType || '') ? body.mimeType : 'image/jpeg';
     if (!image) return { status: 400, jsonBody: { error: 'No se recibió la imagen del voucher.' } };
     if (image.length * 0.75 > MAX_BYTES) return { status: 413, jsonBody: { error: 'La imagen es demasiado grande.' } };
+
+    if (usarDocIntel) {
+      try {
+        return { status: 200, jsonBody: normalizar(docintel.extraerCampos(await docintel.analizar(image))) };
+      } catch (e) {
+        context.error(e);
+        const status = e.status === 429 ? 429 : 502;
+        return { status, jsonBody: { error: status === 429 ? 'Hay muchas lecturas en curso. Intenta en unos segundos.' : 'El servicio de lectura no respondió correctamente.' } };
+      }
+    }
 
     const url = `${ENDPOINT}/openai/deployments/${encodeURIComponent(DEPLOYMENT)}/chat/completions?api-version=${API_VERSION}`;
     const payload = {
