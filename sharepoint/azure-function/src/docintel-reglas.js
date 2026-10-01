@@ -55,9 +55,10 @@ const MESES = { ENE: 1, JAN: 1, FEB: 2, MAR: 3, ABR: 4, APR: 4, MAY: 5, JUN: 6, 
 const ETIQUETAS = {
   fecha: /FECHA/,
   hora: /\bHORA\b/,
-  operacion: /(N[°ºO.]?|NRO\.?|NUMERO|CODIGO|COD\.?)\s*(DE\s*)?(LA\s*)?(OPERACION|OP\b|TRANSACCION|CONSTANCIA)|CONSTANCIA\s*(N[°ºO.]?|:)|SECUENCIA|OPERACION\s*(N[°ºO.]|:|#)/,
+  // También "OP-0534249" (recaudación BCP): OP seguido de un separador y un número.
+  operacion: /(N[°ºO.]?|NRO\.?|NUMERO|CODIGO|COD\.?)\s*(DE\s*)?(LA\s*)?(OPERACION|OP\b|TRANSACCION|CONSTANCIA)|CONSTANCIA\s*(N[°ºO.]?|:)|SECUENCIA|OPERACION\s*(N[°ºO.]|:|#)|\bOP(?=\s*[-:#.]\s*\d)/,
   importe: /IMPORTE|MONTO|TOTAL|VALOR TRANSFERIDO|CANTIDAD/,
-  cuenta: /CUENTA|\bCTA\b|\bCCI\b|DESTINO|BENEFICIARIO/,
+  cuenta: /CUENTA|\bCTA\b|\bCCI\b|DESTINO|BENEFICIARIO|CONVENIO/,
   ordenante: /ORDENANTE|TITULAR|REMITENTE|PAGADOR|DEPOSITANTE|ENVIADO POR|^DE$/,
   referencia: /REFERENCIA|CONCEPTO|GLOSA|DESCRIPCION|MENSAJE|DETALLE/
 };
@@ -88,6 +89,7 @@ function fecha(s) {
   let d, mo, y;
   let m = p.match(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4}|\d{2})\b/);
   if (m) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+  else if ((m = p.match(/\b(20\d{2})-(\d{1,2})-(\d{1,2})\b/))) { y = +m[1]; mo = +m[2]; d = +m[3]; }
   else if ((m = p.match(/\b(\d{1,2})\s*(?:DE\s+)?(ENE|JAN|FEB|MAR|ABR|APR|MAY|JUN|JUL|AGO|AUG|SET|SEP|OCT|NOV|DIC|DEC)[A-Z]*\.?\s*(?:DE(?:L)?\s+)?(\d{4})\b/))) { d = +m[1]; mo = MESES[m[2]]; y = +m[3]; }
   else return null;
   if (y < 100) y += 2000;
@@ -104,6 +106,14 @@ function hora(s) {
   return `${String(h).padStart(2, '0')}:${m[2]}`;
 }
 
+/** Hora junto a su etiqueta: acepta también "16.53" o "16h53", que fuera de la etiqueta se confundiría con un monto. */
+function horaEtiqueta(s) {
+  const h = hora(s);
+  if (h) return h;
+  const m = plano(s).match(/^\s*([01]?\d|2[0-3])\s*[.H]\s*([0-5]\d)\b/);
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : null;
+}
+
 function operacion(s) {
   // Se quitan fechas y horas para no tomar un año como número de operación.
   const t = plano(s).replace(/\b\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\b|\b\d{1,2}:\d{2}(:\d{2})?\b/g, ' ');
@@ -113,7 +123,10 @@ function operacion(s) {
 
 /** Convierte "1,250.40", "1.250,40", "18450" a número. */
 function numero(raw) {
-  let t = String(raw).replace(/\s/g, '');
+  let t = String(raw).replace(/[\s*]/g, '');
+  // "5.000.00" o "1,234,567.89": el último separador seguido de 2 dígitos es el decimal; los demás son de miles.
+  const sep = t.match(/[.,]/g) || [];
+  if (sep.length > 1 && /[.,]\d{2}$/.test(t)) t = t.slice(0, -3).replace(/[.,]/g, '') + '.' + t.slice(-2);
   if (t.includes(',') && t.includes('.')) t = t.lastIndexOf('.') > t.lastIndexOf(',') ? t.replace(/,/g, '') : t.replace(/\./g, '').replace(',', '.');
   else if (t.includes(',')) t = /,\d{2}$/.test(t) ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
   else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
@@ -122,12 +135,41 @@ function numero(raw) {
 }
 const MONTO = /(S\/\.?|US\$|USD|\$|SOLES|DOLARES|PEN)?\s*(\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,2})?|\d+(?:[.,]\d{1,2})?)\s*(SOLES|DOLARES|USD|PEN)?/;
 const moneda = sim => (!sim ? null : /S\/|SOLES|PEN/.test(sim) ? 'PEN' : 'USD');
+// "$" solo (sin "US") es ambiguo en algunos tickets peruanos: se toma como dólares, pero para revisar.
+const simboloDudoso = sim => /^\$$/.test(String(sim || '').trim());
+
+/** Valida un RUC peruano (11 dígitos, prefijo 10/15/16/17/20 y dígito verificador). */
+function rucValido(r) {
+  if (!/^(10|15|16|17|20)\d{9}$/.test(r)) return false;
+  const pesos = [5, 4, 3, 2, 7, 6, 5, 4, 3, 2];
+  const suma = pesos.reduce((acc, w, i) => acc + w * Number(r[i]), 0);
+  const dv = (11 - (suma % 11)) % 10;
+  return dv === Number(r[10]);
+}
+
+/**
+ * RUC (y nombre) de quien paga en tickets de recaudación: "REF.: 20609231158CONGA DE ORO EIRL",
+ * "Código Id Usuario: 20275847721". Devuelve "NOMBRE · RUC 20609231158" o "RUC 20275847721".
+ */
+const ETIQ_RUC = /^\s*(REF\b|REFERENCIA\b|(COD(IGO)?\.?\s*)?(ID\s*)?(DE\s*)?(USUARIO|DEPOSITANTE|CLIENTE|ASOCIADO)\b|RUC\b|DNI\b)/;
+function ordenanteRuc(lineas) {
+  for (let i = 0; i < lineas.length; i++) {
+    const p = plano(lineas[i]);
+    if (!ETIQ_RUC.test(p)) continue;
+    const val = lineas[i].replace(/^[^:]*:\s*/, '');
+    const m = val.match(/^\s*(\d{11})\s*([^\d].*)?$/);
+    if (!m || !rucValido(m[1])) continue;
+    const nom = m[2] ? nombre(m[2]) : null;
+    return nom ? `${nom} · RUC ${m[1]}` : `RUC ${m[1]}`;
+  }
+  return null;
+}
 
 function importe(s) {
-  const m = plano(s).match(MONTO);
+  const m = plano(s).replace(/\*+/g, '').match(MONTO);
   if (!m) return null;
   const valor = numero(m[2]);
-  return valor === null ? null : { valor, moneda: moneda(m[1] || m[3]) };
+  return valor === null ? null : { valor, moneda: moneda(m[1] || m[3]), dudoso: simboloDudoso(m[1] || m[3]) };
 }
 
 function cuenta(s) {
@@ -157,7 +199,7 @@ function extraerCampos(result) {
 
   const f = primero('fecha', fecha); const ft = f ? null : fecha(content);
   out.fecha = f ? campo(f.v, f.c) : campo(ft, 'media');
-  const h = primero('hora', hora); const ht = h ? null : hora(content);
+  const h = primero('hora', horaEtiqueta); const ht = h ? null : hora(content);
   out.hora = h ? campo(h.v, h.c) : campo(ht, 'media');
   const o = primero('operacion', operacion);
   out.operacion = o ? campo(o.v, o.c) : campo(null);
@@ -167,17 +209,24 @@ function extraerCampos(result) {
     // Sin etiqueta: el mayor monto con símbolo de moneda (las comisiones suelen ser menores).
     const re = new RegExp(MONTO.source.replace('(S\\/\\.?|US\\$|USD|\\$|SOLES|DOLARES|PEN)?', '(S\\/\\.?|US\\$|USD|\\$|SOLES|DOLARES|PEN)'), 'g');
     let best = null;
-    for (const m of T.matchAll(re)) { const v = numero(m[2]); if (v !== null && (!best || v > best.valor)) best = { valor: v, moneda: moneda(m[1]) }; }
+    for (const m of T.replace(/\*+/g, '').matchAll(re)) { const v = numero(m[2]); if (v !== null && (!best || v > best.valor)) best = { valor: v, moneda: moneda(m[1]), dudoso: simboloDudoso(m[1]) }; }
     if (best) imp = { v: best, c: 'media' };
   }
   out.importe = imp ? campo(imp.v.valor, imp.c) : campo(null);
-  const mon = (imp && imp.v.moneda) || (/US\$|\bUSD\b|DOLARES/.test(T) ? 'USD' : /S\/|\bSOLES\b/.test(T) ? 'PEN' : null);
-  out.moneda = campo(mon, imp && imp.v.moneda ? (imp.c === 'baja' ? 'baja' : 'alta') : 'media');
+  // Moneda: la del símbolo junto al importe; si no hay, la que aparezca en el texto. Un "$" solo queda para revisar.
+  let mon = imp && imp.v.moneda; let monConf = mon ? (imp.c === 'baja' ? 'baja' : imp.v.dudoso ? 'media' : 'alta') : 'media';
+  if (!mon) {
+    if (/US\$|\bUSD\b|DOLARES/.test(T)) mon = 'USD';
+    else if (/S\/|\bSOLES\b/.test(T)) mon = 'PEN';
+    else if (/\$/.test(T)) mon = 'USD';
+  }
+  out.moneda = campo(mon || null, monConf);
 
   const cu = primero('cuenta', cuenta);
   out.cuenta = cu ? campo(cu.v, cu.c) : campo(null);
   const or = primero('ordenante', nombre);
-  out.ordenante = or ? campo(or.v, or.c) : campo(null);
+  const orRuc = or ? null : ordenanteRuc(lineas);
+  out.ordenante = or ? campo(or.v, or.c) : campo(orRuc, 'media');
   const rf = primero('referencia', texto);
   out.referencia = rf ? campo(rf.v, rf.c) : campo(null);
 
@@ -187,4 +236,4 @@ function extraerCampos(result) {
   return out;
 }
 
-module.exports = { API_VERSION, analizarCon, extraerCampos, numero, fecha, hora };
+module.exports = { API_VERSION, analizarCon, extraerCampos, numero, fecha, hora, rucValido };

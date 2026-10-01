@@ -229,6 +229,9 @@ export function sumTxt(s: { PEN: number; USD: number }): string {
 }
 
 export function scoreCliente(c: Cliente, ord: string): number {
+  // Si el voucher trae el RUC de quien paga (tickets de recaudación), coincide de forma exacta.
+  const rucs = String(ord).match(/\b\d{11}\b/g);
+  if (rucs && c.ruc) return rucs.indexOf(String(c.ruc).trim()) > -1 ? 1 : 0;
   const a = norm(ord).replace(/[.,]/g, '').replace(/\b(SAC|SRL|EIRL|SA|SAA)\b/g, '').split(' ').filter(w => w.length > 2);
   if (!a.length) return 0;
   const b = norm(c.razon).replace(/[.,]/g, '');

@@ -54,3 +54,37 @@ assert.strictEqual(r.esVoucher, false);
 assert.ok(r.nota.length > 0);
 
 console.log('docintel OK');
+
+// ---- Vouchers reales reportados (recaudación BBVA y BCP) ----
+// 7. BBVA "SERVIC. RECAUDACION": importe con punto de miles y decimal (5.000.00), hora con punto, RUC + nombre en REF.
+const bbvaLineas = 'BBVA\nSERVIC. RECAUDACION 06-04-26\nOFIC: 0248 EMISORA: VOLVO M.E.\nCONVENIO: 0011-001-0001370-100\nHORA : 16.53\nREF.: 20609231158CONGA DE ORO EIRL\nDOC.:\nDESC:\nNOMB:\nF.VCTO.: 2026-04-06\nF.PA: VALOR EFECTIVO\nIMPORTE\n$\n5.000.00\nMORA\n$\n0.00\nSUB TOTAL\n$\n5.000.00\nCOMISION BANCO\n$\n0.00\nCANCELACION TOTAL\n$\n5.000.00\nCLAVE: RC70/1714/P030520 /00240109/16:53';
+for (const [nombre, res] of [
+  ['BBVA con pares', { content: bbvaLineas, keyValuePairs: [kv('IMPORTE', '5.000.00'), kv('HORA :', '16.53', 0.8)] }],
+  ['BBVA sin pares', { content: bbvaLineas }],
+  ['BBVA en una línea', { content: bbvaLineas.replace(/\n\$\n/g, ' $ ') }]
+]) {
+  r = extraerCampos(res);
+  assert.deepStrictEqual(
+    [val(r, 'banco'), val(r, 'fecha'), val(r, 'hora'), val(r, 'importe'), val(r, 'moneda'), val(r, 'cuenta'), val(r, 'ordenante')],
+    ['BBVA', '06/04/2026', '16:53', 5000, 'USD', '0011-001-0001370-100', 'CONGA DE ORO EIRL · RUC 20609231158'], nombre);
+  assert.strictEqual(r.moneda.confianza, 'media', nombre + ': "$" solo se marca para revisar');
+}
+
+// 8. BCP "SERVICIO DE RECAUDACION": operación como "OP-0534249", importe con asteriscos, RUC en "Código Id Usuario".
+const bcpLineas = 'BCP\nSERVICIO DE RECAUDACION MNA\nOF./570000-CCTC-T75426 OP-0534249 29/09/2026\nHora:11:44:43\nTipo de empresa : EMPRESAS\nEmpresa afiliada :\nEFE\nVOLVO-PERU-SA\nCuenta a Abonar :\nANTICIPOS-VOLVO-PERU-MN\nNro de cuenta : 191-7104673-0-72\nCódigo Id Usuario: 20275847721\nImporte : S/*****51,600.00\nComisión : S/*********0.00\nImporte Total : S/*****51,600.00\n------\nANTES DE RETIRARSE DE LA VENTANILLA, POR FAVOR VERIFIQUE QUE LA EMPRESA Y LA CUENTA ABONADA SEAN LAS CORRECTAS';
+for (const [nombre, res] of [
+  ['BCP con pares', { content: bcpLineas, keyValuePairs: [kv('Nro de cuenta', '191-7104673-0-72'), kv('Código Id Usuario:', '20275847721'), kv('Importe', 'S/*****51,600.00'), kv('Hora:', '11:44:43')] }],
+  ['BCP sin pares', { content: bcpLineas }]
+]) {
+  r = extraerCampos(res);
+  assert.deepStrictEqual(
+    [val(r, 'banco'), val(r, 'fecha'), val(r, 'hora'), val(r, 'operacion'), val(r, 'importe'), val(r, 'moneda'), val(r, 'cuenta'), val(r, 'ordenante')],
+    ['BCP', '29/09/2026', '11:44', '0534249', 51600, 'PEN', '191-7104673-0-72', 'RUC 20275847721'], nombre);
+}
+
+// Utilidades nuevas
+assert.strictEqual(numero('5.000.00'), 5000);
+assert.strictEqual(numero('1.234.567,89'), 1234567.89);
+assert.strictEqual(numero('*****51,600.00'), 51600);
+assert.strictEqual(fecha('F.VCTO.: 2026-04-06'), '06/04/2026');
+console.log('vouchers reales OK');
