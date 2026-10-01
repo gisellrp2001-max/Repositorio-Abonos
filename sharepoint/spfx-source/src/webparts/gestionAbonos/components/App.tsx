@@ -84,19 +84,27 @@ export default function App(props: AppProps): React.ReactElement {
     return best && best.s >= 0.67 ? { clienteId: best.c.id, cliSug: true } : { clienteId: null, cliSug: false };
   };
 
-  const analyze = async (it: Item): Promise<void> => {
+  const analyze = async (it: Item, reread = false): Promise<void> => {
     if (!ocr.enabled || !it.jpg) {
       upd(it.key, () => ({ status: 'revisar', manual: true, ocr: null, conf: {}, note: ocr.enabled ? '' : 'La lectura automática no está configurada. Completa los datos a mano.' }));
       return;
     }
-    upd(it.key, () => ({ status: 'analizando', anStart: Date.now() }));
+    if (!reread) upd(it.key, () => ({ status: 'analizando', anStart: Date.now() }));
     try {
       const r = await ocr.read(it.jpg);
       const cli = autoCliente(r.form.ordenante);
-      upd(it.key, i => ({ status: 'revisar', ocr: r.ocr, conf: r.conf, form: r.form, note: r.note, manual: false, clienteId: i.clienteId || cli.clienteId, cliSug: i.clienteId ? i.cliSug : cli.cliSug }));
+      upd(it.key, i => ({ status: 'revisar', ocr: r.ocr, conf: r.conf, form: r.form, note: r.note, manual: false, readFail: false, rereading: false, clienteId: i.clienteId || cli.clienteId, cliSug: i.clienteId ? i.cliSug : cli.cliSug }));
     } catch (e) {
-      upd(it.key, () => ({ status: 'revisar', manual: true, ocr: null, conf: {}, form: emptyForm(), note: ((e as Error).message || 'La lectura automática falló.') + ' Completa los datos a mano.' }));
+      upd(it.key, () => ({ status: 'revisar', manual: true, readFail: true, rereading: false, ocr: null, conf: {}, form: emptyForm(), note: ((e as Error).message || 'La lectura automática falló.') + ' Vuelve a leerlo o completa los datos a mano.' }));
     }
+  };
+
+  /** Repite la lectura de un voucher que falló, sin salir de la revisión. */
+  const reread = (key: string): void => {
+    const it = flow.items.filter(i => i.key === key)[0];
+    if (!it || !it.jpg || it.rereading) return;
+    upd(key, () => ({ rereading: true }));
+    void analyze(it, true).catch(() => upd(key, () => ({ rereading: false })));
   };
 
   React.useEffect(() => {
@@ -115,7 +123,7 @@ export default function App(props: AppProps): React.ReactElement {
 
   const ctx: Ctx = {
     sp, ocr, abonos, clientes, isG, isAdmin, meId: sp.userId, meName: props.userName, diag, loading, view, param,
-    go, refresh, toast, confirm: (o: ConfirmOpts) => setConfirmOpts(o), flow, setFlow, tick
+    go, refresh, toast, confirm: (o: ConfirmOpts) => setConfirmOpts(o), flow, setFlow, tick, reread
   };
 
   const pend = abonos.filter(a => a.estado === 'Enviado').length;

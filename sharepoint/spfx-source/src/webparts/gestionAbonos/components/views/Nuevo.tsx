@@ -256,6 +256,7 @@ function ItemPanel(props: { it: Item }): React.ReactElement {
 /* ---------- Revisión ---------- */
 function Revisar(props: { it: Item; upd: (p: (i: Item) => Partial<Item>) => void; discard: () => void }): React.ReactElement {
   const { it, upd } = props;
+  const { reread } = useApp();
   const fm = it.form;
   const setField = (k: FieldKey, v: string): void => upd(i => ({ form: { ...i.form, [k]: v }, missing: i.missing.filter(x => x !== k) }));
   const conf = (k: FieldKey): React.ReactNode => {
@@ -314,7 +315,17 @@ function Revisar(props: { it: Item; upd: (p: (i: Item) => Partial<Item>) => void
               </div>
             ) : null}
           </div>
-          {it.note ? <div className="alert warn"><span className="a-ic"><Icon n="warn" /></span><p style={{ fontSize: 13 }}>{it.note}</p></div> : null}
+          {it.note ? (
+            <div className="alert warn">
+              <span className="a-ic"><Icon n="warn" /></span>
+              <p style={{ fontSize: 13 }}>{it.note}</p>
+              {it.readFail && it.jpg ? (
+                <button type="button" className="btn btn-s btn-sm" style={{ marginLeft: 'auto', flex: 'none' }} onClick={() => reread(it.key)} disabled={!!it.rereading}>
+                  {it.rereading ? <><span className="spin" />Leyendo…</> : <><Icon n="scan" />Volver a leer</>}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
           <div className="grid2">
             {fld('banco', <><input id={id('banco')} className={'inp ' + cls('banco')} value={fm.banco} list={id('bancos')} onChange={e => setField('banco', e.target.value)} autoComplete="off" /><datalist id={id('bancos')}>{BANCOS.map(b => <option key={b} value={b} />)}</datalist></>)}
             {fld('moneda', <select id={id('moneda')} className={'inp ' + cls('moneda')} value={fm.moneda} onChange={e => setField('moneda', e.target.value)}><option value="PEN">Soles (PEN)</option><option value="USD">Dólares (USD)</option></select>)}

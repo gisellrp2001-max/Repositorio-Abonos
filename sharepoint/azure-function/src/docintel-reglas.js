@@ -7,6 +7,31 @@
 const API_VERSION = '2024-11-30';
 const esperar = ms => new Promise(r => setTimeout(r, ms));
 
+/*
+ * Ritmo de llamadas. El plan gratuito F0 permite 1 análisis (POST) y 1 consulta (GET) por segundo; el lote
+ * lee dos vouchers a la vez. Si Azure responde 429, desde ahí las llamadas de cada tipo se espacian 1.1 s
+ * (para todo el lote, porque el estado es del módulo) y la llamada rechazada se repite tras una espera.
+ */
+const ritmo = { gap: 0, post: 0, get: 0 };
+async function turno(tipo) {
+  const ahora = Date.now();
+  const t = Math.max(ahora, ritmo[tipo]);
+  ritmo[tipo] = t + ritmo.gap;
+  if (t > ahora) await esperar(t - ahora);
+}
+async function pedir(tipo, url, init, limite) {
+  for (let intento = 0; ; intento++) {
+    await turno(tipo);
+    const r = await fetch(url, init);
+    if (r.status !== 429) return r;
+    ritmo.gap = Math.max(ritmo.gap, 1100);
+    const ra = Number(r.headers.get('retry-after'));
+    const espera = (ra > 0 ? ra * 1000 : Math.min(1000 * 2 ** intento, 8000)) + Math.floor(Math.random() * 400);
+    if (Date.now() + espera > limite) return r;
+    await esperar(espera);
+  }
+}
+
 /**
  * Envía el archivo (base64) a Document Intelligence y espera el resultado (analyzeResult).
  * opts: { endpoint, headers (clave o token), model, features, apiVersion, timeoutMs }
@@ -17,26 +42,31 @@ async function analizarCon(base64, opts) {
   const model = opts.model || 'prebuilt-layout';
   const features = opts.features === undefined ? 'keyValuePairs' : opts.features;
   const headers = opts.headers || {};
+  const limite = Date.now() + (opts.timeoutMs || 90000);
   const qs = `api-version=${opts.apiVersion || API_VERSION}&locale=es-ES${features ? `&features=${encodeURIComponent(features)}` : ''}`;
-  const r = await fetch(`${endpoint}/documentintelligence/documentModels/${encodeURIComponent(model)}:analyze?${qs}`, {
+  const r = await pedir('post', `${endpoint}/documentintelligence/documentModels/${encodeURIComponent(model)}:analyze?${qs}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify({ base64Source: base64 })
-  });
+  }, limite);
   if (r.status !== 202) {
     const e = new Error(`Document Intelligence ${r.status}: ${(await r.text()).slice(0, 400)}`);
     e.status = r.status; throw e;
   }
   const op = r.headers.get('operation-location');
   if (!op) { const e = new Error('Document Intelligence no devolvió la dirección del resultado.'); e.status = 502; throw e; }
-  const limite = Date.now() + (opts.timeoutMs || 30000);
+  const pausa = Math.min(Math.max(Number(r.headers.get('retry-after')) || 1, 1), 3) * 1000;
   while (Date.now() < limite) {
-    await esperar(Math.min(Math.max(Number(r.headers.get('retry-after')) || 1, 1), 3) * 1000);
-    const p = await fetch(op, { headers });
+    await esperar(pausa);
+    const p = await pedir('get', op, { headers }, limite);
+    if (p.status === 429) break;
     const j = await p.json();
     if (j.status === 'succeeded') return j.analyzeResult;
     if (j.status === 'failed') { const e = new Error(`Document Intelligence: ${JSON.stringify(j.error || {}).slice(0, 400)}`); e.status = 502; throw e; }
   }
   const e = new Error('Document Intelligence no respondió a tiempo.'); e.status = 504; throw e;
 }
+
+/** Solo para pruebas: reinicia el ritmo de llamadas. */
+function _reiniciarRitmo() { ritmo.gap = 0; ritmo.post = 0; ritmo.get = 0; }
 
 // ---------- Interpretación del resultado ----------
 
@@ -251,4 +281,4 @@ function extraerCampos(result) {
   return out;
 }
 
-module.exports = { API_VERSION, analizarCon, extraerCampos, numero, fecha, hora, rucValido };
+module.exports = { API_VERSION, analizarCon, extraerCampos, numero, fecha, hora, rucValido, _reiniciarRitmo };

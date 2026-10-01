@@ -249,6 +249,7 @@ Estructura principal:
 | “La lectura falló (401)” | Falta aprobar la API en SharePoint (Paso 5.3), o el ID de aplicación del web part no coincide con `api://<client-id>`. |
 | “La lectura falló (403/404)” o error de CORS | Revisa la URL de la función y agrega tu dominio de SharePoint en CORS (Paso 3.7). |
 | “El servicio de lectura no respondió correctamente” | Revisa en la función los ajustes `DOCINTEL_*` (o `AZURE_OPENAI_*`) y el rol de la identidad administrada: *Cognitive Services User* para Document Intelligence, *Cognitive Services OpenAI User* para Azure OpenAI. Los registros están en Application Insights. |
+| “Document Intelligence está ocupado o alcanzaste el límite del plan gratuito” | El plan F0 acepta 1 lectura por segundo. La app ya espera y reintenta sola (un lote de 6 vouchers tarda unos 15 s), y si aun así falla, el voucher muestra **Volver a leer**. Para el uso diario con varios vendedores, usa el plan **S0**. |
 | Un banco se lee mal o le faltan datos | Prueba ese voucher con `node probar-voucher.js` y `VER_TEXTO=1`, y ajusta las etiquetas en `src/docintel.js`. La revisión del vendedor siempre permite corregir antes de enviar. |
 | La app dice que no encuentra una columna | Corrige el mapeo en el panel del web part y revisa **Configuración**. |
 | “No se pudo registrar: … Estado” | La columna Estado es de elección y sus opciones no coinciden. Agrega las opciones o usa `valores.estado` en el mapeo. |
