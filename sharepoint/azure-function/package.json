@@ -5,7 +5,7 @@
   "main": "src/functions/*.js",
   "scripts": {
     "start": "func start",
-    "test": "node test/prueba-normalizar.js && node test/prueba-docintel.js && node test/prueba-analizar.js",
+    "test": "node test/prueba-normalizar.js && node test/prueba-docintel.js && node test/prueba-analizar.js && node test/prueba-limite-f0.js",
     "probar": "node probar-voucher.js"
   },
   "dependencies": {

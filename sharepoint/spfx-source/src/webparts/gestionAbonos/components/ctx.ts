@@ -19,6 +19,9 @@ export interface Item {
   preview: string;
   status: ItemStatus;
   err: string;
+  /** La lectura automática falló (servicio ocupado, sin conexión…): se puede volver a intentar. */
+  readFail?: boolean;
+  rereading?: boolean;
   anStart: number;
   ocr: OcrData | null;
   conf: Partial<Record<string, Conf>>;
@@ -58,6 +61,8 @@ export interface Ctx {
   flow: Flow;
   setFlow: React.Dispatch<React.SetStateAction<Flow>>;
   tick: number;
+  /** Vuelve a leer un voucher cuya lectura falló. */
+  reread: (key: string) => void;
 }
 
 export const AppCtx = React.createContext<Ctx>(null as unknown as Ctx);
