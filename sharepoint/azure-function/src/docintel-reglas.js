@@ -106,6 +106,20 @@ function hora(s) {
   return `${String(h).padStart(2, '0')}:${m[2]}`;
 }
 
+/**
+ * N° de operación en tickets de recaudación BBVA, que no lo etiquetan:
+ * "CLAVE: RC70/1714/P030520 /00240109/16:53" → 00240109 (el último bloque solo de dígitos antes de la hora).
+ */
+function operacionClave(lineas) {
+  for (const l of lineas) {
+    const m = plano(l).match(/^\s*CLAVE\s*:?\s*(.+)$/);
+    if (!m) continue;
+    const partes = m[1].split('/').map(x => x.trim()).filter(x => x && !/^\d{1,2}:\d{2}(:\d{2})?$/.test(x));
+    for (let i = partes.length - 1; i >= 0; i--) if (/^\d{6,12}$/.test(partes[i])) return partes[i];
+  }
+  return null;
+}
+
 /** Hora junto a su etiqueta: acepta también "16.53" o "16h53", que fuera de la etiqueta se confundiría con un monto. */
 function horaEtiqueta(s) {
   const h = hora(s);
@@ -202,7 +216,8 @@ function extraerCampos(result) {
   const h = primero('hora', horaEtiqueta); const ht = h ? null : hora(content);
   out.hora = h ? campo(h.v, h.c) : campo(ht, 'media');
   const o = primero('operacion', operacion);
-  out.operacion = o ? campo(o.v, o.c) : campo(null);
+  const oClave = o ? null : operacionClave(lineas);
+  out.operacion = o ? campo(o.v, o.c) : campo(oClave, 'media');
 
   let imp = primero('importe', importe);
   if (!imp) {

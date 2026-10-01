@@ -65,8 +65,9 @@ for (const [nombre, res] of [
 ]) {
   r = extraerCampos(res);
   assert.deepStrictEqual(
-    [val(r, 'banco'), val(r, 'fecha'), val(r, 'hora'), val(r, 'importe'), val(r, 'moneda'), val(r, 'cuenta'), val(r, 'ordenante')],
-    ['BBVA', '06/04/2026', '16:53', 5000, 'USD', '0011-001-0001370-100', 'CONGA DE ORO EIRL · RUC 20609231158'], nombre);
+    [val(r, 'banco'), val(r, 'fecha'), val(r, 'hora'), val(r, 'operacion'), val(r, 'importe'), val(r, 'moneda'), val(r, 'cuenta'), val(r, 'ordenante')],
+    ['BBVA', '06/04/2026', '16:53', '00240109', 5000, 'USD', '0011-001-0001370-100', 'CONGA DE ORO EIRL · RUC 20609231158'], nombre);
+  assert.strictEqual(r.operacion.confianza, 'media', nombre + ': operación desde CLAVE queda para revisar');
   assert.strictEqual(r.moneda.confianza, 'media', nombre + ': "$" solo se marca para revisar');
 }
 
