@@ -1,6 +1,8 @@
 /* Servicios simulados para el modo demo: guardan los datos en el navegador (localStorage) en lugar de SharePoint. */
 import { Abono, Cliente, Hist, Estado, Moneda, Extra, DEFAULT_MAPPING, pad2 } from '../src/webparts/gestionAbonos/model';
 import { normalize, OcrResult } from '../src/webparts/gestionAbonos/services/OcrService';
+// Mismas reglas que usa la función de Azure: la demo puede leer vouchers reales con Document Intelligence.
+import * as reglas from '../../azure-function/src/docintel-reglas';
 
 const KEY = 'gestion-abonos-demo-v1';
 interface Store { abonos: Abono[]; clientes: Cliente[]; hist: Array<Hist & { abonoId: number }>; seq: number; files: Record<string, string>; }
@@ -151,10 +153,43 @@ export class MockSp {
 }
 
 /** Lectura simulada: devuelve datos de ejemplo tras unos segundos. Con ?ocr=<url> usa una función real (por ejemplo la local). */
+/** Configuración de lectura real con Document Intelligence; se guarda solo en este navegador. */
+export interface DocIntelCfg { endpoint: string; key: string; }
+const DI_KEY = 'gestion-abonos-demo-docintel';
+export function getDocIntel(): DocIntelCfg | null {
+  try { const c = JSON.parse(localStorage.getItem(DI_KEY) || 'null'); return c && c.endpoint && c.key ? c : null; } catch (e) { return null; }
+}
+export function setDocIntel(c: DocIntelCfg | null): void {
+  try { if (c) localStorage.setItem(DI_KEY, JSON.stringify(c)); else localStorage.removeItem(DI_KEY); } catch (e) { /* nada */ }
+}
+/** Comprueba punto de conexión y clave sin analizar nada (GET /info). Devuelve '' si funciona o el motivo del error. */
+export async function probarDocIntel(c: DocIntelCfg): Promise<string> {
+  const ep = c.endpoint.trim().replace(/\/+$/, '');
+  if (!/^https:\/\/[^/]+$/.test(ep)) return 'El punto de conexión debe ser como https://<recurso>.cognitiveservices.azure.com';
+  try {
+    const r = await fetch(`${ep}/documentintelligence/info?api-version=${reglas.API_VERSION}`, { headers: { 'Ocp-Apim-Subscription-Key': c.key.trim() } });
+    if (r.ok) return '';
+    if (r.status === 401) return 'La clave no es válida para este recurso.';
+    if (r.status === 404) return 'El punto de conexión no corresponde a un recurso de Document Intelligence.';
+    return `Azure respondió ${r.status}.`;
+  } catch (e) { return 'No se pudo conectar. Revisa el punto de conexión.'; }
+}
+
 export class MockOcr {
   public enabled = true;
   constructor(private url: string) {}
   public async read(jpg: Blob): Promise<OcrResult> {
+    const di = getDocIntel();
+    if (di) {
+      const b64 = (await blobToDataUrl(jpg)).split(',')[1];
+      try {
+        const res = await reglas.analizarCon(b64, { endpoint: di.endpoint, headers: { 'Ocp-Apim-Subscription-Key': di.key.trim() } });
+        return normalize(reglas.extraerCampos(res));
+      } catch (e) {
+        const st = (e as { status?: number }).status;
+        throw new Error(st === 401 ? 'La lectura falló: la clave de Document Intelligence no es válida.' : st === 429 ? 'Document Intelligence está ocupado o alcanzaste el límite del plan gratuito. Intenta en unos segundos.' : `La lectura falló: ${(e as Error).message}`);
+      }
+    }
     if (this.url) {
       const b64 = (await blobToDataUrl(jpg)).split(',')[1];
       const r = await fetch(this.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: b64, mimeType: 'image/jpeg' }) });

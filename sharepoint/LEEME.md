@@ -24,7 +24,7 @@ Abre **`demo/gestion-abonos-demo.html`** con doble clic en Chrome o Edge. Es la 
 
 - Trae datos de ejemplo y lo que registres se guarda solo en ese navegador. El botón **Restablecer datos de ejemplo** vuelve al inicio.
 - Con **Ver como** cambias entre dos vendedores y Gestión para probar el ciclo completo: registrar, validar u observar, y corregir.
-- La lectura del voucher está simulada. Tus imágenes y PDF se cargan y se ven, pero los datos que aparecen son de ejemplo.
+- La lectura del voucher está simulada: tus imágenes y PDF se cargan y se ven, pero los datos que aparecen son de ejemplo. Con el botón **Lectura real** puedes conectarla a tu recurso de Document Intelligence (ver abajo).
 
 Si modificas el código, regenera la demo con:
 
@@ -36,9 +36,17 @@ npm run demo      # crea demo/dist/gestion-abonos-demo.html
 
 ### Probar la lectura real con tus vouchers
 
-Solo necesitas un recurso de **Document Intelligence** (Paso 1, puede ser el nivel gratuito F0) y Node 20 o superior. Nada se publica.
+Solo necesitas un recurso de **Document Intelligence** (Paso 1, puede ser el nivel gratuito F0).
 
-**A. Solo la lectura, desde la consola.** Muestra qué datos saca de cada voucher:
+**A. Desde la demo, sin instalar nada (lo más fácil).**
+
+1. Abre la demo (el archivo `demo/gestion-abonos-demo.html` o su versión publicada) y pulsa **Lectura real** en la barra superior.
+2. Pega el **punto de conexión** y una **clave** de tu recurso (portal de Azure › tu recurso › *Claves y punto de conexión*) y pulsa **Comprobar y activar**.
+3. Registra un abono como siempre: **Nuevo abono › Seleccionar archivos / Tomar foto › Analizar voucher**. Los datos que aparecen salen de tu voucher.
+
+La demo llama a Document Intelligence directo desde el navegador con las mismas reglas que la función (`azure-function/src/docintel-reglas.js`). La clave queda guardada solo en ese navegador; **Volver a lectura simulada** la borra. Este modo es solo para probar: en producción la clave nunca llega al navegador, porque la lectura pasa por la función.
+
+**B. Solo la lectura, desde la consola.** Necesitas Node 20 o superior. Muestra qué datos saca de cada voucher:
 
 ```bash
 cd azure-function
@@ -51,7 +59,7 @@ node probar-voucher.js voucher1.jpg voucher2.pdf
 
 Agrega `VER_TEXTO=1` para ver también todo el texto que leyó. Si un banco no se interpreta bien, ese texto sirve para ajustar las reglas en `src/docintel.js`.
 
-**B. La demo completa con lectura real.** Necesitas Azure Functions Core Tools (`func`).
+**C. La demo usando la función en tu equipo.** Necesitas Azure Functions Core Tools (`func`).
 
 1. En `azure-function/`, copia `local.settings.example.json` como `local.settings.json`.
 2. Completa `DOCINTEL_ENDPOINT` y `DOCINTEL_KEY`, y cambia `"CORS"` a `"*"`.
